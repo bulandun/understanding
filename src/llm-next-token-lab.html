@@ -281,9 +281,14 @@
         lighthouse: {
           prompt: 'The old lighthouse keeper opened the door and saw',
           rounds: [
-            [['the', 0.27], ['a', 0.23], ['nothing', 0.16], ['her', 0.12], ['light', 0.09], ['that', 0.07]],
-            [['sea', 0.31], ['storm', 0.21], ['figure', 0.18], ['boat', 0.12], ['room', 0.10], ['sky', 0.08]],
-            [['below', 0.29], ['outside', 0.22], ['moving', 0.17], ['waiting', 0.13], ['again', 0.11], ['.', 0.08]]
+            [['the', 0.34], ['a', 0.23], ['something', 0.16], ['her', 0.11], ['light', 0.09], ['nothing', 0.07]],
+            [['sea', 0.34], ['storm', 0.21], ['figure', 0.17], ['boat', 0.12], ['room', 0.09], ['sky', 0.07]],
+            [['moving', 0.31], ['shining', 0.22], ['waiting', 0.17], ['below', 0.13], ['outside', 0.10], ['again', 0.07]],
+            [['.', 0.38], ['slowly', 0.20], ['closer', 0.15], ['silently', 0.11], ['—', 0.09], [',', 0.07]],
+            [['It', 0.33], ['Something', 0.22], ['The', 0.18], ['He', 0.12], ['Then', 0.09], ['But', 0.06]],
+            [['was', 0.35], ['seemed', 0.21], ['kept', 0.16], ['began', 0.12], ['looked', 0.10], ['felt', 0.06]],
+            [['coming', 0.32], ['moving', 0.23], ['drifting', 0.17], ['rising', 0.12], ['waiting', 0.09], ['watching', 0.07]],
+            [['closer', 0.31], ['toward', 0.22], ['through', 0.17], ['again', 0.13], ['silently', 0.10], ['.', 0.07]]
           ]
         },
         bank: {
@@ -410,8 +415,12 @@
         const vocabulary = ['the', 'a', 'and', 'to', 'of', 'was', 'in', 'that', 'with', 'from', 'but', 'through', 'new', 'one', 'more', '.', ',', '—'];
         const seed = hashText(text);
         const offset = seed % vocabulary.length;
+        const lastToken = tokenize(text).at(-1)?.toLowerCase();
         const chosen = [];
-        for (let i = 0; i < 6; i += 1) chosen.push(vocabulary[(offset + i * 5) % vocabulary.length]);
+        for (let i = 0; chosen.length < 6 && i < vocabulary.length; i += 1) {
+          const token = vocabulary[(offset + i * 5) % vocabulary.length];
+          if (token.toLowerCase() !== lastToken && !chosen.includes(token)) chosen.push(token);
+        }
         const raw = chosen.map((token, i) => ({ token, weight: 1 / (1.45 + i * 0.72 + ((seed >> (i + 1)) & 3) * 0.16) }));
         const total = raw.reduce((sum, item) => sum + item.weight, 0);
         return raw.map(item => ({ token: item.token, probability: item.weight / total }));
@@ -420,8 +429,8 @@
       function currentCandidates() {
         const chosenContext = contexts[contextSelect.value];
         const expectedPrefix = chosenContext && promptInput.value.startsWith(chosenContext.prompt);
-        if (chosenContext && expectedPrefix) {
-          const round = chosenContext.rounds[Math.min(contextRound, chosenContext.rounds.length - 1)];
+        if (chosenContext && expectedPrefix && contextRound < chosenContext.rounds.length) {
+          const round = chosenContext.rounds[contextRound];
           return round.map(([token, probability]) => ({ token, probability }));
         }
         return customCandidates(promptInput.value);
@@ -478,6 +487,10 @@
       }
 
       function weightedChoice(items) {
+        const chosenContext = contexts[contextSelect.value];
+        if (chosenContext && promptInput.value.startsWith(chosenContext.prompt) && contextRound < chosenContext.rounds.length) {
+          return [...items].sort((a, b) => b.probability - a.probability)[0];
+        }
         const seed = hashText(promptInput.value + String(contextRound));
         let cursor = (seed % 1000) / 1000;
         for (const item of items) {

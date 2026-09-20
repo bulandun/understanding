@@ -1822,9 +1822,14 @@ html&gt;body{padding:0}&lt;/style&gt;
         lighthouse: {
           prompt: &#x27;The old lighthouse keeper opened the door and saw&#x27;,
           rounds: [
-            [[&#x27;the&#x27;, 0.27], [&#x27;a&#x27;, 0.23], [&#x27;nothing&#x27;, 0.16], [&#x27;her&#x27;, 0.12], [&#x27;light&#x27;, 0.09], [&#x27;that&#x27;, 0.07]],
-            [[&#x27;sea&#x27;, 0.31], [&#x27;storm&#x27;, 0.21], [&#x27;figure&#x27;, 0.18], [&#x27;boat&#x27;, 0.12], [&#x27;room&#x27;, 0.10], [&#x27;sky&#x27;, 0.08]],
-            [[&#x27;below&#x27;, 0.29], [&#x27;outside&#x27;, 0.22], [&#x27;moving&#x27;, 0.17], [&#x27;waiting&#x27;, 0.13], [&#x27;again&#x27;, 0.11], [&#x27;.&#x27;, 0.08]]
+            [[&#x27;the&#x27;, 0.34], [&#x27;a&#x27;, 0.23], [&#x27;something&#x27;, 0.16], [&#x27;her&#x27;, 0.11], [&#x27;light&#x27;, 0.09], [&#x27;nothing&#x27;, 0.07]],
+            [[&#x27;sea&#x27;, 0.34], [&#x27;storm&#x27;, 0.21], [&#x27;figure&#x27;, 0.17], [&#x27;boat&#x27;, 0.12], [&#x27;room&#x27;, 0.09], [&#x27;sky&#x27;, 0.07]],
+            [[&#x27;moving&#x27;, 0.31], [&#x27;shining&#x27;, 0.22], [&#x27;waiting&#x27;, 0.17], [&#x27;below&#x27;, 0.13], [&#x27;outside&#x27;, 0.10], [&#x27;again&#x27;, 0.07]],
+            [[&#x27;.&#x27;, 0.38], [&#x27;slowly&#x27;, 0.20], [&#x27;closer&#x27;, 0.15], [&#x27;silently&#x27;, 0.11], [&#x27;—&#x27;, 0.09], [&#x27;,&#x27;, 0.07]],
+            [[&#x27;It&#x27;, 0.33], [&#x27;Something&#x27;, 0.22], [&#x27;The&#x27;, 0.18], [&#x27;He&#x27;, 0.12], [&#x27;Then&#x27;, 0.09], [&#x27;But&#x27;, 0.06]],
+            [[&#x27;was&#x27;, 0.35], [&#x27;seemed&#x27;, 0.21], [&#x27;kept&#x27;, 0.16], [&#x27;began&#x27;, 0.12], [&#x27;looked&#x27;, 0.10], [&#x27;felt&#x27;, 0.06]],
+            [[&#x27;coming&#x27;, 0.32], [&#x27;moving&#x27;, 0.23], [&#x27;drifting&#x27;, 0.17], [&#x27;rising&#x27;, 0.12], [&#x27;waiting&#x27;, 0.09], [&#x27;watching&#x27;, 0.07]],
+            [[&#x27;closer&#x27;, 0.31], [&#x27;toward&#x27;, 0.22], [&#x27;through&#x27;, 0.17], [&#x27;again&#x27;, 0.13], [&#x27;silently&#x27;, 0.10], [&#x27;.&#x27;, 0.07]]
           ]
         },
         bank: {
@@ -1951,8 +1956,12 @@ html&gt;body{padding:0}&lt;/style&gt;
         const vocabulary = [&#x27;the&#x27;, &#x27;a&#x27;, &#x27;and&#x27;, &#x27;to&#x27;, &#x27;of&#x27;, &#x27;was&#x27;, &#x27;in&#x27;, &#x27;that&#x27;, &#x27;with&#x27;, &#x27;from&#x27;, &#x27;but&#x27;, &#x27;through&#x27;, &#x27;new&#x27;, &#x27;one&#x27;, &#x27;more&#x27;, &#x27;.&#x27;, &#x27;,&#x27;, &#x27;—&#x27;];
         const seed = hashText(text);
         const offset = seed % vocabulary.length;
+        const lastToken = tokenize(text).at(-1)?.toLowerCase();
         const chosen = [];
-        for (let i = 0; i &lt; 6; i += 1) chosen.push(vocabulary[(offset + i * 5) % vocabulary.length]);
+        for (let i = 0; chosen.length &lt; 6 &amp;&amp; i &lt; vocabulary.length; i += 1) {
+          const token = vocabulary[(offset + i * 5) % vocabulary.length];
+          if (token.toLowerCase() !== lastToken &amp;&amp; !chosen.includes(token)) chosen.push(token);
+        }
         const raw = chosen.map((token, i) =&gt; ({ token, weight: 1 / (1.45 + i * 0.72 + ((seed &gt;&gt; (i + 1)) &amp; 3) * 0.16) }));
         const total = raw.reduce((sum, item) =&gt; sum + item.weight, 0);
         return raw.map(item =&gt; ({ token: item.token, probability: item.weight / total }));
@@ -1961,8 +1970,8 @@ html&gt;body{padding:0}&lt;/style&gt;
       function currentCandidates() {
         const chosenContext = contexts[contextSelect.value];
         const expectedPrefix = chosenContext &amp;&amp; promptInput.value.startsWith(chosenContext.prompt);
-        if (chosenContext &amp;&amp; expectedPrefix) {
-          const round = chosenContext.rounds[Math.min(contextRound, chosenContext.rounds.length - 1)];
+        if (chosenContext &amp;&amp; expectedPrefix &amp;&amp; contextRound &lt; chosenContext.rounds.length) {
+          const round = chosenContext.rounds[contextRound];
           return round.map(([token, probability]) =&gt; ({ token, probability }));
         }
         return customCandidates(promptInput.value);
@@ -2019,6 +2028,10 @@ html&gt;body{padding:0}&lt;/style&gt;
       }
 
       function weightedChoice(items) {
+        const chosenContext = contexts[contextSelect.value];
+        if (chosenContext &amp;&amp; promptInput.value.startsWith(chosenContext.prompt) &amp;&amp; contextRound &lt; chosenContext.rounds.length) {
+          return [...items].sort((a, b) =&gt; b.probability - a.probability)[0];
+        }
         const seed = hashText(promptInput.value + String(contextRound));
         let cursor = (seed % 1000) / 1000;
         for (const item of items) {
