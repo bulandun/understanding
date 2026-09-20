@@ -1638,6 +1638,14 @@ html&gt;body{padding:0}&lt;/style&gt;
       pointer-events: none;
     }
 
+    #llm-next-token-lab .llm-canvas-help {
+      position: absolute;
+      left: 0.65rem;
+      bottom: 0.35rem;
+      max-width: calc(100% - 10rem);
+      pointer-events: none;
+    }
+
     #llm-next-token-lab .llm-legend {
       display: flex;
       align-items: center;
@@ -1749,6 +1757,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 
     &lt;div class=&quot;llm-actions&quot;&gt;
       &lt;button class=&quot;btn&quot; id=&quot;llm-tour&quot; type=&quot;button&quot;&gt;&lt;i data-lucide=&quot;play&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Guide me&lt;/button&gt;
+      &lt;button class=&quot;btn&quot; id=&quot;llm-reset&quot; type=&quot;button&quot; title=&quot;Show the whole process&quot;&gt;&lt;i data-lucide=&quot;scan&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Reset view&lt;/button&gt;
       &lt;button class=&quot;btn btn-primary&quot; id=&quot;llm-generate&quot; type=&quot;button&quot;&gt;&lt;i data-lucide=&quot;sparkles&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Generate next token&lt;/button&gt;
     &lt;/div&gt;
   &lt;/div&gt;
@@ -1768,7 +1777,8 @@ html&gt;body{padding:0}&lt;/style&gt;
   &lt;/div&gt;
 
   &lt;div class=&quot;llm-canvas-wrap&quot; id=&quot;llm-canvas-wrap&quot;&gt;
-    &lt;canvas id=&quot;llm-canvas&quot; role=&quot;img&quot; aria-label=&quot;Interactive three-dimensional schematic of tokens passing through attention and transformer layers to a next-token probability distribution&quot;&gt;&lt;/canvas&gt;
+    &lt;canvas id=&quot;llm-canvas&quot; role=&quot;img&quot; tabindex=&quot;0&quot; aria-label=&quot;Interactive three-dimensional schematic of tokens passing through attention and transformer layers to a next-token probability distribution. Select a stage above or click parts of the model to explore them.&quot;&gt;&lt;/canvas&gt;
+    &lt;span class=&quot;llm-canvas-help text-small text-muted&quot; id=&quot;llm-canvas-help&quot;&gt;Click any part to focus · choose a possible next token&lt;/span&gt;
     &lt;span class=&quot;llm-drag-hint text-small text-muted&quot;&gt;&lt;i data-lucide=&quot;move-3d&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt; Drag to rotate&lt;/span&gt;
   &lt;/div&gt;
 
@@ -1795,6 +1805,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       const contextSelect = document.getElementById(&#x27;llm-context&#x27;);
       const generateButton = document.getElementById(&#x27;llm-generate&#x27;);
       const tourButton = document.getElementById(&#x27;llm-tour&#x27;);
+      const resetButton = document.getElementById(&#x27;llm-reset&#x27;);
       const status = document.getElementById(&#x27;llm-status&#x27;);
       const stageTitle = document.getElementById(&#x27;llm-stage-title&#x27;);
       const stageCount = document.getElementById(&#x27;llm-stage-count&#x27;);
@@ -1875,8 +1886,13 @@ html&gt;body{padding:0}&lt;/style&gt;
       let pitch = -0.04;
       let targetYaw = yaw;
       let targetPitch = pitch;
+      let viewCenterX = 0;
+      let targetViewCenterX = 0;
+      let viewZoom = 1;
+      let targetViewZoom = 1;
       let dragging = false;
       let dragStart = null;
+      let pointerMoved = false;
       let tourTimer = null;
       let tourPlaying = false;
       let generationPulse = 0;
@@ -1887,6 +1903,14 @@ html&gt;body{padding:0}&lt;/style&gt;
       let animationFrame = null;
       let canvasDimensions = { width: 0, height: 0, dpr: 1 };
       let canvasColors = null;
+
+      const stageViews = [
+        { x: 0, zoom: 1 },
+        { x: -3.05, zoom: 1.52 },
+        { x: -1.45, zoom: 1.56 },
+        { x: 0.48, zoom: 1.48 },
+        { x: 2.85, zoom: 1.48 }
+      ];
 
       function resolvedColor(name) {
         colorProbe.style.color = `var(${name})`;
@@ -1957,6 +1981,8 @@ html&gt;body{padding:0}&lt;/style&gt;
           button.setAttribute(&#x27;aria-selected&#x27;, selected ? &#x27;true&#x27; : &#x27;false&#x27;);
         });
         stagePanel.setAttribute(&#x27;aria-labelledby&#x27;, `llm-tab-${activeStage}`);
+        targetViewCenterX = stageViews[activeStage].x;
+        targetViewZoom = stageViews[activeStage].zoom;
         if (!options.quiet) status.textContent = `${data.title}. Drag the model to inspect it.`;
         draw();
       }
@@ -2002,11 +2028,12 @@ html&gt;body{padding:0}&lt;/style&gt;
         return items[0];
       }
 
-      function generateToken() {
+      function generateToken(chosenCandidate) {
+        if (generateButton.disabled) return;
         stopTour();
         setStage(4, { quiet: true });
         candidates = currentCandidates();
-        const selected = weightedChoice(candidates);
+        const selected = chosenCandidate || weightedChoice(candidates);
         selectedToken = selected.token;
         generationPulse = 1;
         animationStart = performance.now();
@@ -2057,9 +2084,9 @@ html&gt;body{padding:0}&lt;/style&gt;
         const p = rotatePoint(point);
         const camera = 9.2;
         const depth = Math.max(3.8, camera - p.z);
-        const scale = Math.min(width / 9.2, height / 6.1) * (camera / depth);
+        const scale = Math.min(width / 9.2, height / 6.1) * (camera / depth) * viewZoom;
         return {
-          x: width * 0.5 + p.x * scale,
+          x: width * 0.5 + (p.x - viewCenterX) * scale,
           y: height * 0.52 - p.y * scale,
           z: p.z,
           scale: camera / depth
@@ -2098,8 +2125,9 @@ html&gt;body{padding:0}&lt;/style&gt;
         return p;
       }
 
-      function label(text, x, y, color, align = &#x27;center&#x27;, weight = 500) {
+      function label(text, x, y, color, align = &#x27;center&#x27;, weight = 500, alpha = 1) {
         ctx.save();
+        ctx.globalAlpha = alpha;
         ctx.fillStyle = color;
         ctx.font = `${weight} 12px system-ui, sans-serif`;
         ctx.textAlign = align;
@@ -2108,18 +2136,18 @@ html&gt;body{padding:0}&lt;/style&gt;
         ctx.restore();
       }
 
-      function roundedLabel(text, p, colors, fillColor, highlighted = false) {
+      function roundedLabel(text, p, colors, fillColor, highlighted = false, alpha = 1) {
         ctx.save();
         ctx.font = &#x27;500 12px system-ui, sans-serif&#x27;;
         const textWidth = ctx.measureText(text).width;
         const width = Math.max(32, textWidth + 16);
         const height = 25;
-        ctx.globalAlpha = highlighted ? 0.98 : 0.84;
+        ctx.globalAlpha = (highlighted ? 0.98 : 0.84) * alpha;
         ctx.fillStyle = fillColor;
         ctx.beginPath();
         ctx.roundRect(p.x - width / 2, p.y - height / 2, width, height, 8);
         ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = alpha;
         ctx.fillStyle = highlighted ? colors.primaryForeground : colors.foreground;
         ctx.textAlign = &#x27;center&#x27;;
         ctx.textBaseline = &#x27;middle&#x27;;
@@ -2164,7 +2192,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           positions.push(point);
           const p = project(point, dims.width, dims.height);
           const highlighted = activeStage === 1 &amp;&amp; hoverItem &amp;&amp; hoverItem.type === &#x27;token&#x27; &amp;&amp; hoverItem.index === i;
-          const box = roundedLabel(word, p, colors, highlighted ? colors.primary : colors.surface, highlighted);
+          const box = roundedLabel(word, p, colors, highlighted ? colors.primary : colors.surface, highlighted, alpha);
           ctx.save();
           ctx.globalAlpha = alpha;
           ctx.fillStyle = colors.series1;
@@ -2285,8 +2313,8 @@ html&gt;body{padding:0}&lt;/style&gt;
           const placeLeft = p.x &gt; dims.width - 105;
           const textX = p.x + (placeLeft ? -12 - candidate.probability * 8 : 12 + candidate.probability * 8);
           const textAlign = placeLeft ? &#x27;right&#x27; : &#x27;left&#x27;;
-          label(candidate.token, textX, p.y - 7, colors.foreground, textAlign);
-          label(percent, textX, p.y + 8, colors.mutedForeground, textAlign, 400);
+          label(candidate.token, textX, p.y - 7, colors.foreground, textAlign, 500, alpha);
+          label(percent, textX, p.y + 8, colors.mutedForeground, textAlign, 400, alpha);
           projectedHitAreas.push({ x: placeLeft ? p.x - 92 : p.x - 18, y: p.y - 18, width: 110, height: 38, type: &#x27;candidate&#x27;, token: candidate.token, label: `“${candidate.token}” has an illustrative probability of ${percent}.` });
         });
         const header = project({ x: 3.15, y: 2.35, z: 0 }, dims.width, dims.height);
@@ -2320,6 +2348,8 @@ html&gt;body{padding:0}&lt;/style&gt;
         const colors = canvasColors;
         yaw += (targetYaw - yaw) * 0.12;
         pitch += (targetPitch - pitch) * 0.12;
+        viewCenterX += (targetViewCenterX - viewCenterX) * 0.11;
+        viewZoom += (targetViewZoom - viewZoom) * 0.11;
         projectedHitAreas = [];
         drawBackdrop(dims, colors);
         const tokenPositions = drawTokens(dims, colors, now);
@@ -2333,7 +2363,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           if (found) status.textContent = found.label;
         }
 
-        const settling = Math.abs(targetYaw - yaw) &gt; 0.002 || Math.abs(targetPitch - pitch) &gt; 0.002;
+        const settling = Math.abs(targetYaw - yaw) &gt; 0.002 || Math.abs(targetPitch - pitch) &gt; 0.002 || Math.abs(targetViewCenterX - viewCenterX) &gt; 0.004 || Math.abs(targetViewZoom - viewZoom) &gt; 0.002;
         const ambientMotion = !reducedMotion &amp;&amp; document.visibilityState !== &#x27;hidden&#x27;;
         if (ambientMotion || dragging || settling || generationPulse) {
           draw();
@@ -2351,6 +2381,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 
       canvas.addEventListener(&#x27;pointerdown&#x27;, event =&gt; {
         dragging = true;
+        pointerMoved = false;
         dragStart = { ...pointerPosition(event), yaw: targetYaw, pitch: targetPitch };
         canvas.setPointerCapture(event.pointerId);
       });
@@ -2358,6 +2389,7 @@ html&gt;body{padding:0}&lt;/style&gt;
       canvas.addEventListener(&#x27;pointermove&#x27;, event =&gt; {
         const pos = pointerPosition(event);
         if (dragging &amp;&amp; dragStart) {
+          if (Math.abs(pos.x - dragStart.x) + Math.abs(pos.y - dragStart.y) &gt; 5) pointerMoved = true;
           targetYaw = Math.max(-0.58, Math.min(0.58, dragStart.yaw + (pos.x - dragStart.x) * 0.004));
           targetPitch = Math.max(-0.3, Math.min(0.3, dragStart.pitch + (pos.y - dragStart.y) * 0.003));
           draw();
@@ -2365,6 +2397,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         }
         const hit = [...projectedHitAreas].reverse().find(item =&gt; pos.x &gt;= item.x &amp;&amp; pos.x &lt;= item.x + item.width &amp;&amp; pos.y &gt;= item.y &amp;&amp; pos.y &lt;= item.y + item.height);
         hoverItem = hit ? { type: hit.type, index: hit.index, token: hit.token } : null;
+        canvas.style.cursor = hit ? &#x27;pointer&#x27; : &#x27;grab&#x27;;
         if (hit) status.textContent = hit.label;
         else status.textContent = stages[activeStage].title + &#x27;. Drag the model to inspect it.&#x27;;
       });
@@ -2382,10 +2415,35 @@ html&gt;body{padding:0}&lt;/style&gt;
         hoverItem = null;
       });
 
+      canvas.addEventListener(&#x27;click&#x27;, event =&gt; {
+        if (pointerMoved) return;
+        const pos = pointerPosition(event);
+        const hit = [...projectedHitAreas].reverse().find(item =&gt; pos.x &gt;= item.x &amp;&amp; pos.x &lt;= item.x + item.width &amp;&amp; pos.y &gt;= item.y &amp;&amp; pos.y &lt;= item.y + item.height);
+        if (!hit) return;
+        if (hit.type === &#x27;candidate&#x27;) {
+          const candidate = candidates.find(item =&gt; item.token === hit.token);
+          if (candidate) generateToken(candidate);
+          return;
+        }
+        const stageByType = { token: 1, attention: 2, layer: 3, logits: 4 };
+        if (stageByType[hit.type]) {
+          stopTour();
+          setStage(stageByType[hit.type]);
+        }
+      });
+
       tabButtons.forEach(button =&gt; {
         button.addEventListener(&#x27;click&#x27;, () =&gt; {
           stopTour();
           setStage(Number(button.dataset.step));
+        });
+        button.addEventListener(&#x27;keydown&#x27;, event =&gt; {
+          if (![&#x27;ArrowLeft&#x27;, &#x27;ArrowRight&#x27;, &#x27;Home&#x27;, &#x27;End&#x27;].includes(event.key)) return;
+          event.preventDefault();
+          const current = tabButtons.indexOf(button);
+          const next = event.key === &#x27;Home&#x27; ? 0 : event.key === &#x27;End&#x27; ? tabButtons.length - 1 : (current + (event.key === &#x27;ArrowRight&#x27; ? 1 : -1) + tabButtons.length) % tabButtons.length;
+          tabButtons[next].focus();
+          tabButtons[next].click();
         });
       });
 
@@ -2407,8 +2465,15 @@ html&gt;body{padding:0}&lt;/style&gt;
         draw();
       });
 
-      generateButton.addEventListener(&#x27;click&#x27;, generateToken);
+      generateButton.addEventListener(&#x27;click&#x27;, () =&gt; generateToken());
       tourButton.addEventListener(&#x27;click&#x27;, startTour);
+      resetButton.addEventListener(&#x27;click&#x27;, () =&gt; {
+        stopTour();
+        targetYaw = -0.08;
+        targetPitch = -0.04;
+        setStage(0);
+        status.textContent = &#x27;Whole process restored. Click any part to focus on it.&#x27;;
+      });
 
       const resizeObserver = new ResizeObserver(() =&gt; {
         updateCanvasSize();
