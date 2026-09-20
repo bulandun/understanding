@@ -332,14 +332,17 @@
       let projectedHitAreas = [];
       let hoverItem = null;
       let reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let animationFrame = null;
+      let canvasDimensions = { width: 0, height: 0, dpr: 1 };
+      let canvasColors = null;
 
       function resolvedColor(name) {
         colorProbe.style.color = `var(${name})`;
         return getComputedStyle(colorProbe).color;
       }
 
-      function palette() {
-        return {
+      function refreshPalette() {
+        canvasColors = {
           foreground: resolvedColor('--foreground'),
           mutedForeground: resolvedColor('--muted-foreground'),
           border: resolvedColor('--border'),
@@ -471,7 +474,7 @@
         }, reducedMotion ? 250 : 1050);
       }
 
-      function sizeCanvas() {
+      function updateCanvasSize() {
         const rect = wrap.getBoundingClientRect();
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const width = Math.max(320, Math.round(rect.width));
@@ -483,7 +486,7 @@
           canvas.height = pixelHeight;
         }
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        return { width, height, dpr };
+        canvasDimensions = { width, height, dpr };
       }
 
       function rotatePoint(point) {
@@ -757,9 +760,12 @@
         ctx.restore();
       }
 
-      function draw(now = performance.now()) {
-        const dims = sizeCanvas();
-        const colors = palette();
+      function renderFrame(now) {
+        animationFrame = null;
+        if (!canvasDimensions.width) updateCanvasSize();
+        if (!canvasColors) refreshPalette();
+        const dims = canvasDimensions;
+        const colors = canvasColors;
         yaw += (targetYaw - yaw) * 0.12;
         pitch += (targetPitch - pitch) * 0.12;
         projectedHitAreas = [];
@@ -775,14 +781,20 @@
           if (found) status.textContent = found.label;
         }
 
-        if (!reducedMotion || dragging || Math.abs(targetYaw - yaw) > 0.002 || Math.abs(targetPitch - pitch) > 0.002 || generationPulse) {
-          window.requestAnimationFrame(draw);
+        const settling = Math.abs(targetYaw - yaw) > 0.002 || Math.abs(targetPitch - pitch) > 0.002;
+        const ambientMotion = !reducedMotion && document.visibilityState !== 'hidden';
+        if (ambientMotion || dragging || settling || generationPulse) {
+          draw();
         }
       }
 
+      function draw() {
+        if (animationFrame !== null) return;
+        animationFrame = window.requestAnimationFrame(renderFrame);
+      }
+
       function pointerPosition(event) {
-        const rect = canvas.getBoundingClientRect();
-        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        return { x: event.offsetX, y: event.offsetY };
       }
 
       canvas.addEventListener('pointerdown', event => {
@@ -846,16 +858,27 @@
       generateButton.addEventListener('click', generateToken);
       tourButton.addEventListener('click', startTour);
 
-      const resizeObserver = new ResizeObserver(() => draw());
+      const resizeObserver = new ResizeObserver(() => {
+        updateCanvasSize();
+        draw();
+      });
       resizeObserver.observe(wrap);
-      const themeObserver = new MutationObserver(() => draw());
+      const themeObserver = new MutationObserver(() => {
+        refreshPalette();
+        draw();
+      });
       themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
       window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', event => {
         reducedMotion = event.matches;
         draw();
       });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'hidden') draw();
+      });
 
       candidates = currentCandidates();
+      updateCanvasSize();
+      refreshPalette();
       setStage(0, { quiet: true });
       if (window.lucide) window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
       draw();
