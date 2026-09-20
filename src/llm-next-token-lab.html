@@ -1,0 +1,864 @@
+<div id="llm-next-token-lab">
+  <style>
+    #llm-next-token-lab {
+      width: 100%;
+      color: var(--foreground);
+    }
+
+    #llm-next-token-lab .llm-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.9rem;
+    }
+
+    #llm-next-token-lab .llm-heading-copy {
+      min-width: 0;
+    }
+
+    #llm-next-token-lab h2 {
+      margin: 0 0 0.25rem;
+    }
+
+    #llm-next-token-lab .llm-stage-nav {
+      margin-bottom: 0.85rem;
+    }
+
+    #llm-next-token-lab .llm-prompt-row {
+      display: grid;
+      grid-template-columns: minmax(8.5rem, 0.7fr) minmax(16rem, 2fr) auto;
+      align-items: end;
+      gap: 0.75rem;
+      margin-bottom: 0.65rem;
+    }
+
+    #llm-next-token-lab .llm-field {
+      min-width: 0;
+    }
+
+    #llm-next-token-lab .llm-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    #llm-next-token-lab .llm-stage-copy {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      gap: 0.75rem;
+      margin: 0.7rem 0 0.35rem;
+    }
+
+    #llm-next-token-lab .llm-stage-copy .card {
+      min-width: 0;
+    }
+
+    #llm-next-token-lab .llm-stage-copy p {
+      margin: 0.2rem 0 0;
+    }
+
+    #llm-next-token-lab .llm-stage-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    #llm-next-token-lab .llm-canvas-wrap {
+      position: relative;
+      width: 100%;
+      min-height: 31rem;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      background:
+        radial-gradient(circle at 52% 48%, color-mix(in srgb, var(--viz-series-1) 9%, transparent), transparent 42%),
+        linear-gradient(180deg, color-mix(in srgb, var(--muted) 42%, transparent), transparent 58%);
+    }
+
+    #llm-next-token-lab canvas {
+      display: block;
+      width: 100%;
+      height: 31rem;
+    }
+
+    #llm-next-token-lab .llm-drag-hint {
+      position: absolute;
+      right: 0.5rem;
+      bottom: 0.35rem;
+      pointer-events: none;
+    }
+
+    #llm-next-token-lab .llm-legend {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 0.45rem;
+    }
+
+    #llm-next-token-lab .llm-legend-items {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    #llm-next-token-lab .llm-key {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    #llm-next-token-lab .llm-dot {
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 50%;
+      background: var(--viz-series-1);
+    }
+
+    #llm-next-token-lab .llm-dot[data-series="2"] {
+      background: var(--viz-series-2);
+    }
+
+    #llm-next-token-lab .llm-dot[data-series="3"] {
+      background: var(--viz-series-3);
+    }
+
+    #llm-next-token-lab .llm-dot[data-series="4"] {
+      background: var(--viz-series-4);
+    }
+
+    #llm-next-token-lab .llm-status {
+      min-height: 1.35em;
+      text-align: right;
+    }
+
+    @media (max-width: 760px) {
+      #llm-next-token-lab .llm-prompt-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+
+      #llm-next-token-lab .llm-stage-copy {
+        grid-template-columns: 1fr;
+      }
+
+      #llm-next-token-lab .llm-canvas-wrap,
+      #llm-next-token-lab canvas {
+        min-height: 27rem;
+        height: 27rem;
+      }
+
+      #llm-next-token-lab .llm-heading {
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      #llm-next-token-lab .llm-status {
+        width: 100%;
+        text-align: left;
+      }
+    }
+  </style>
+
+  <div class="llm-heading">
+    <div class="llm-heading-copy">
+      <h2>How an LLM produces one token</h2>
+      <div class="text-muted">Numbers move through layers; a probability distribution becomes the next token.</div>
+    </div>
+    <span class="viz-badge">Illustrative model</span>
+  </div>
+
+  <div class="nav nav-pills nav-justified llm-stage-nav" role="tablist" aria-label="LLM processing stage">
+    <button class="nav-link active" id="llm-tab-0" role="tab" aria-controls="llm-stage-panel" aria-selected="true" type="button" data-step="0">Whole process</button>
+    <button class="nav-link" id="llm-tab-1" role="tab" aria-controls="llm-stage-panel" aria-selected="false" type="button" data-step="1">1 · Tokens</button>
+    <button class="nav-link" id="llm-tab-2" role="tab" aria-controls="llm-stage-panel" aria-selected="false" type="button" data-step="2">2 · Attention</button>
+    <button class="nav-link" id="llm-tab-3" role="tab" aria-controls="llm-stage-panel" aria-selected="false" type="button" data-step="3">3 · Layers</button>
+    <button class="nav-link" id="llm-tab-4" role="tab" aria-controls="llm-stage-panel" aria-selected="false" type="button" data-step="4">4 · Prediction</button>
+  </div>
+
+  <div class="llm-prompt-row">
+    <label class="llm-field">
+      <span class="form-label">Example context</span>
+      <select class="form-select" id="llm-context">
+        <option value="lighthouse">Story</option>
+        <option value="bank">Ambiguous word</option>
+        <option value="museum">Creative prompt</option>
+      </select>
+    </label>
+
+    <label class="llm-field">
+      <span class="form-label">Text so far</span>
+      <input class="form-control" id="llm-prompt" type="text" value="The old lighthouse keeper opened the door and saw" aria-describedby="llm-stage-panel">
+    </label>
+
+    <div class="llm-actions">
+      <button class="btn" id="llm-tour" type="button"><i data-lucide="play" aria-hidden="true"></i> Guide me</button>
+      <button class="btn btn-primary" id="llm-generate" type="button"><i data-lucide="sparkles" aria-hidden="true"></i> Generate next token</button>
+    </div>
+  </div>
+
+  <div class="llm-stage-copy" id="llm-stage-panel" role="tabpanel" aria-labelledby="llm-tab-0">
+    <div class="card">
+      <div class="llm-stage-label">
+        <strong id="llm-stage-title">The complete loop</strong>
+        <span class="text-small text-muted" id="llm-stage-count">Overview</span>
+      </div>
+      <p id="llm-stage-detail">The model repeatedly converts text into numbers, mixes context, and predicts one next token.</p>
+    </div>
+    <div class="card">
+      <strong>Human contrast</strong>
+      <p id="llm-human-detail">You may imagine a scene and its meaning. The model transforms learned numerical patterns.</p>
+    </div>
+  </div>
+
+  <div class="llm-canvas-wrap" id="llm-canvas-wrap">
+    <canvas id="llm-canvas" role="img" aria-label="Interactive three-dimensional schematic of tokens passing through attention and transformer layers to a next-token probability distribution"></canvas>
+    <span class="llm-drag-hint text-small text-muted"><i data-lucide="move-3d" aria-hidden="true"></i> Drag to rotate</span>
+  </div>
+
+  <div class="llm-legend">
+    <div class="llm-legend-items text-small text-muted" aria-label="Visual legend">
+      <span class="llm-key"><span class="llm-dot"></span>Token vectors</span>
+      <span class="llm-key"><span class="llm-dot" data-series="2"></span>Attention</span>
+      <span class="llm-key"><span class="llm-dot" data-series="3"></span>Layer transforms</span>
+      <span class="llm-key"><span class="llm-dot" data-series="4"></span>Possible next tokens</span>
+    </div>
+    <div class="llm-status text-small text-muted" id="llm-status" aria-live="polite">Ready — choose a stage or generate the next token.</div>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('llm-next-token-lab');
+      if (!root || root.dataset.ready === 'true') return;
+      root.dataset.ready = 'true';
+
+      const canvas = document.getElementById('llm-canvas');
+      const wrap = document.getElementById('llm-canvas-wrap');
+      const ctx = canvas.getContext('2d');
+      const promptInput = document.getElementById('llm-prompt');
+      const contextSelect = document.getElementById('llm-context');
+      const generateButton = document.getElementById('llm-generate');
+      const tourButton = document.getElementById('llm-tour');
+      const status = document.getElementById('llm-status');
+      const stageTitle = document.getElementById('llm-stage-title');
+      const stageCount = document.getElementById('llm-stage-count');
+      const stageDetail = document.getElementById('llm-stage-detail');
+      const humanDetail = document.getElementById('llm-human-detail');
+      const stagePanel = document.getElementById('llm-stage-panel');
+      const tabButtons = [...root.querySelectorAll('[data-step]')];
+      const colorProbe = document.createElement('span');
+      colorProbe.setAttribute('aria-hidden', 'true');
+      colorProbe.style.cssText = 'position:absolute;inline-size:0;block-size:0;overflow:hidden;pointer-events:none;';
+      root.appendChild(colorProbe);
+
+      const contexts = {
+        lighthouse: {
+          prompt: 'The old lighthouse keeper opened the door and saw',
+          rounds: [
+            [['the', 0.27], ['a', 0.23], ['nothing', 0.16], ['her', 0.12], ['light', 0.09], ['that', 0.07]],
+            [['sea', 0.31], ['storm', 0.21], ['figure', 0.18], ['boat', 0.12], ['room', 0.10], ['sky', 0.08]],
+            [['below', 0.29], ['outside', 0.22], ['moving', 0.17], ['waiting', 0.13], ['again', 0.11], ['.', 0.08]]
+          ]
+        },
+        bank: {
+          prompt: 'I left the bank and walked toward the',
+          rounds: [
+            [['river', 0.36], ['station', 0.19], ['car', 0.15], ['door', 0.12], ['bridge', 0.10], ['town', 0.08]],
+            [['bank', 0.30], ['path', 0.23], ['edge', 0.17], ['below', 0.12], ['slowly', 0.10], ['.', 0.08]],
+            [['where', 0.28], ['and', 0.24], ['before', 0.16], ['nearby', 0.13], ['alone', 0.11], ['.', 0.08]]
+          ]
+        },
+        museum: {
+          prompt: 'Invent a museum for memories that were never',
+          rounds: [
+            [['lived', 0.31], ['made', 0.23], ['recorded', 0.15], ['yours', 0.12], ['lost', 0.11], ['real', 0.08]],
+            [['.', 0.24], ['Visitors', 0.22], ['Each', 0.18], ['The', 0.15], ['Inside', 0.12], ['—', 0.09]],
+            [['room', 0.28], ['visitor', 0.22], ['memory', 0.19], ['object', 0.13], ['exhibit', 0.10], ['door', 0.08]]
+          ]
+        }
+      };
+
+      const stages = [
+        {
+          title: 'The complete loop',
+          count: 'Overview',
+          detail: 'The model repeatedly converts text into numbers, mixes context, and predicts one next token.',
+          human: 'You may imagine a scene and its meaning. The model transforms learned numerical patterns.'
+        },
+        {
+          title: 'Text becomes tokens',
+          count: 'Step 1 of 4',
+          detail: 'The text is split into pieces and each piece becomes a high-dimensional numerical vector.',
+          human: 'You can connect “lighthouse” to sights, sounds and experience. The model receives token IDs and vectors.'
+        },
+        {
+          title: 'Attention mixes context',
+          count: 'Step 2 of 4',
+          detail: 'Each token weights other tokens differently, creating context-sensitive representations.',
+          human: 'Human attention is tied to goals and perception. Model attention is a learned mathematical weighting operation.'
+        },
+        {
+          title: 'Layers transform the pattern',
+          count: 'Step 3 of 4',
+          detail: 'Repeated blocks reshape the vectors, building increasingly useful relationships for prediction.',
+          human: 'There is no little voice inside the layers. These are repeated calculations, not conscious reflection.'
+        },
+        {
+          title: 'A distribution becomes one token',
+          count: 'Step 4 of 4',
+          detail: 'The final state assigns probabilities to possible next tokens; one is selected and fed back into the context.',
+          human: 'A fluent continuation can feel intentional, but it is produced token by token—not retrieved as a finished thought.'
+        }
+      ];
+
+      let activeStage = 0;
+      let contextRound = 0;
+      let candidates = contexts.lighthouse.rounds[0].map(([token, probability]) => ({ token, probability }));
+      let selectedToken = '';
+      let yaw = -0.08;
+      let pitch = -0.04;
+      let targetYaw = yaw;
+      let targetPitch = pitch;
+      let dragging = false;
+      let dragStart = null;
+      let tourTimer = null;
+      let tourPlaying = false;
+      let generationPulse = 0;
+      let animationStart = performance.now();
+      let projectedHitAreas = [];
+      let hoverItem = null;
+      let reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function resolvedColor(name) {
+        colorProbe.style.color = `var(${name})`;
+        return getComputedStyle(colorProbe).color;
+      }
+
+      function palette() {
+        return {
+          foreground: resolvedColor('--foreground'),
+          mutedForeground: resolvedColor('--muted-foreground'),
+          border: resolvedColor('--border'),
+          surface: resolvedColor('--muted'),
+          series1: resolvedColor('--viz-series-1'),
+          series2: resolvedColor('--viz-series-2'),
+          series3: resolvedColor('--viz-series-3'),
+          series4: resolvedColor('--viz-series-4'),
+          series5: resolvedColor('--viz-series-5'),
+          primary: resolvedColor('--primary'),
+          primaryForeground: resolvedColor('--primary-foreground')
+        };
+      }
+
+      function tokenize(text) {
+        const rough = text.trim().match(/[A-Za-zÀ-ž]+|\d+|[^\sA-Za-zÀ-ž\d]/g) || [];
+        return rough.slice(-9);
+      }
+
+      function hashText(text) {
+        let h = 2166136261;
+        for (let i = 0; i < text.length; i += 1) {
+          h ^= text.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      }
+
+      function customCandidates(text) {
+        const vocabulary = ['the', 'a', 'and', 'to', 'of', 'was', 'in', 'that', 'with', 'from', 'but', 'through', 'new', 'one', 'more', '.', ',', '—'];
+        const seed = hashText(text);
+        const offset = seed % vocabulary.length;
+        const chosen = [];
+        for (let i = 0; i < 6; i += 1) chosen.push(vocabulary[(offset + i * 5) % vocabulary.length]);
+        const raw = chosen.map((token, i) => ({ token, weight: 1 / (1.45 + i * 0.72 + ((seed >> (i + 1)) & 3) * 0.16) }));
+        const total = raw.reduce((sum, item) => sum + item.weight, 0);
+        return raw.map(item => ({ token: item.token, probability: item.weight / total }));
+      }
+
+      function currentCandidates() {
+        const chosenContext = contexts[contextSelect.value];
+        const expectedPrefix = chosenContext && promptInput.value.startsWith(chosenContext.prompt);
+        if (chosenContext && expectedPrefix) {
+          const round = chosenContext.rounds[Math.min(contextRound, chosenContext.rounds.length - 1)];
+          return round.map(([token, probability]) => ({ token, probability }));
+        }
+        return customCandidates(promptInput.value);
+      }
+
+      function setStage(index, options = {}) {
+        activeStage = Math.max(0, Math.min(stages.length - 1, index));
+        const data = stages[activeStage];
+        stageTitle.textContent = data.title;
+        stageCount.textContent = data.count;
+        stageDetail.textContent = data.detail;
+        humanDetail.textContent = data.human;
+        tabButtons.forEach((button, buttonIndex) => {
+          const selected = buttonIndex === activeStage;
+          button.classList.toggle('active', selected);
+          button.setAttribute('aria-selected', selected ? 'true' : 'false');
+        });
+        stagePanel.setAttribute('aria-labelledby', `llm-tab-${activeStage}`);
+        if (!options.quiet) status.textContent = `${data.title}. Drag the model to inspect it.`;
+        draw();
+      }
+
+      function startTour() {
+        if (tourPlaying) {
+          stopTour('Guided tour paused.');
+          return;
+        }
+        tourPlaying = true;
+        tourButton.innerHTML = '<i data-lucide="pause" aria-hidden="true"></i> Pause tour';
+        if (window.lucide) window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
+        let next = activeStage === 4 ? 1 : Math.max(1, activeStage + 1);
+        setStage(next);
+        status.textContent = `Guided tour: ${stages[next].title}`;
+        tourTimer = window.setInterval(() => {
+          next += 1;
+          if (next > 4) {
+            stopTour('Tour complete — generate a token to see the loop continue.');
+            return;
+          }
+          setStage(next, { quiet: true });
+          status.textContent = `Guided tour: ${stages[next].title}`;
+        }, reducedMotion ? 4200 : 3000);
+      }
+
+      function stopTour(message) {
+        if (tourTimer) window.clearInterval(tourTimer);
+        tourTimer = null;
+        tourPlaying = false;
+        tourButton.innerHTML = '<i data-lucide="play" aria-hidden="true"></i> Guide me';
+        if (window.lucide) window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
+        if (message) status.textContent = message;
+      }
+
+      function weightedChoice(items) {
+        const seed = hashText(promptInput.value + String(contextRound));
+        let cursor = (seed % 1000) / 1000;
+        for (const item of items) {
+          cursor -= item.probability;
+          if (cursor <= 0) return item;
+        }
+        return items[0];
+      }
+
+      function generateToken() {
+        stopTour();
+        setStage(4, { quiet: true });
+        candidates = currentCandidates();
+        const selected = weightedChoice(candidates);
+        selectedToken = selected.token;
+        generationPulse = 1;
+        animationStart = performance.now();
+        generateButton.disabled = true;
+        status.textContent = 'Sampling from the probability distribution…';
+        draw();
+        window.setTimeout(() => {
+          const punctuation = /^[.,!?;:]$/.test(selected.token);
+          promptInput.value = `${promptInput.value}${punctuation ? '' : ' '}${selected.token}`;
+          contextRound += 1;
+          status.textContent = `Selected “${selected.token}” (${Math.round(selected.probability * 100)}%). It now becomes part of the context.`;
+          generateButton.disabled = false;
+          generationPulse = 0;
+          candidates = currentCandidates();
+          selectedToken = '';
+          draw();
+        }, reducedMotion ? 250 : 1050);
+      }
+
+      function sizeCanvas() {
+        const rect = wrap.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const width = Math.max(320, Math.round(rect.width));
+        const height = Math.max(400, Math.round(rect.height));
+        const pixelWidth = Math.round(width * dpr);
+        const pixelHeight = Math.round(height * dpr);
+        if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+          canvas.width = pixelWidth;
+          canvas.height = pixelHeight;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { width, height, dpr };
+      }
+
+      function rotatePoint(point) {
+        const cy = Math.cos(yaw);
+        const sy = Math.sin(yaw);
+        const cp = Math.cos(pitch);
+        const sp = Math.sin(pitch);
+        const x1 = point.x * cy - point.z * sy;
+        const z1 = point.x * sy + point.z * cy;
+        const y1 = point.y * cp - z1 * sp;
+        const z2 = point.y * sp + z1 * cp;
+        return { x: x1, y: y1, z: z2 };
+      }
+
+      function project(point, width, height) {
+        const p = rotatePoint(point);
+        const camera = 9.2;
+        const depth = Math.max(3.8, camera - p.z);
+        const scale = Math.min(width / 9.2, height / 6.1) * (camera / depth);
+        return {
+          x: width * 0.5 + p.x * scale,
+          y: height * 0.52 - p.y * scale,
+          z: p.z,
+          scale: camera / depth
+        };
+      }
+
+      function line3D(a, b, color, alpha, width, dims) {
+        const pa = project(a, dims.width, dims.height);
+        const pb = project(b, dims.width, dims.height);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(pa.x, pa.y);
+        ctx.lineTo(pb.x, pb.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function circle3D(point, radius, fill, alpha, dims, stroke) {
+        const p = project(point, dims.width, dims.height);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(2.2, radius * p.scale), 0, Math.PI * 2);
+        ctx.fill();
+        if (stroke) {
+          ctx.globalAlpha = Math.min(1, alpha + 0.2);
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        ctx.restore();
+        return p;
+      }
+
+      function label(text, x, y, color, align = 'center', weight = 500) {
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.font = `${weight} 12px system-ui, sans-serif`;
+        ctx.textAlign = align;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x, y);
+        ctx.restore();
+      }
+
+      function roundedLabel(text, p, colors, fillColor, highlighted = false) {
+        ctx.save();
+        ctx.font = '500 12px system-ui, sans-serif';
+        const textWidth = ctx.measureText(text).width;
+        const width = Math.max(32, textWidth + 16);
+        const height = 25;
+        ctx.globalAlpha = highlighted ? 0.98 : 0.84;
+        ctx.fillStyle = fillColor;
+        ctx.beginPath();
+        ctx.roundRect(p.x - width / 2, p.y - height / 2, width, height, 8);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = highlighted ? colors.primaryForeground : colors.foreground;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, p.x, p.y + 0.5);
+        ctx.restore();
+        return { x: p.x - width / 2, y: p.y - height / 2, width, height };
+      }
+
+      function stageAlpha(stageNumber) {
+        if (activeStage === 0) return 1;
+        return activeStage === stageNumber ? 1 : 0.16;
+      }
+
+      function drawBackdrop(dims, colors) {
+        ctx.save();
+        ctx.clearRect(0, 0, dims.width, dims.height);
+        const cx = dims.width * 0.5;
+        const cy = dims.height * 0.52;
+        for (let r = 60; r < Math.max(dims.width, dims.height); r += 58) {
+          ctx.globalAlpha = 0.07;
+          ctx.strokeStyle = colors.border;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawTokens(dims, colors, time) {
+        const words = tokenize(promptInput.value);
+        const count = words.length;
+        const alpha = stageAlpha(1);
+        const positions = [];
+        words.forEach((word, i) => {
+          const angle = (i / Math.max(1, count)) * Math.PI * 2 - Math.PI / 2;
+          const point = {
+            x: -3.25,
+            y: Math.sin(angle) * 1.65,
+            z: Math.cos(angle) * 1.3
+          };
+          positions.push(point);
+          const p = project(point, dims.width, dims.height);
+          const highlighted = activeStage === 1 && hoverItem && hoverItem.type === 'token' && hoverItem.index === i;
+          const box = roundedLabel(word, p, colors, highlighted ? colors.primary : colors.surface, highlighted);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = colors.series1;
+          ctx.beginPath();
+          ctx.arc(p.x - box.width / 2 + 4, p.y, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          projectedHitAreas.push({ ...box, type: 'token', index: i, label: `Token “${word}” becomes a numerical vector.` });
+        });
+
+        const end = { x: -2.25, y: 0, z: 0 };
+        positions.forEach((point, i) => {
+          const wave = 0.5 + 0.5 * Math.sin(time * 0.0018 + i);
+          line3D(point, end, colors.series1, alpha * (0.15 + wave * 0.18), 1, dims);
+        });
+        const header = project({ x: -3.25, y: 2.35, z: 0 }, dims.width, dims.height);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        label('TOKENS', header.x, header.y, colors.mutedForeground);
+        ctx.restore();
+        return positions;
+      }
+
+      function drawAttention(tokenPositions, dims, colors, time) {
+        const alpha = stageAlpha(2);
+        const focus = { x: -1.45, y: 0, z: 0 };
+        const attentionPoints = tokenPositions.map((point, i) => ({
+          x: -1.45,
+          y: point.y * 0.86,
+          z: point.z * 0.86,
+          weight: 0.22 + ((hashText(promptInput.value + i) % 70) / 100)
+        }));
+        for (let i = 0; i < attentionPoints.length; i += 1) {
+          for (let j = i + 1; j < attentionPoints.length; j += 1) {
+            const strength = ((i * 13 + j * 7 + hashText(promptInput.value)) % 100) / 100;
+            if (strength > 0.56) {
+              const pulse = 0.55 + 0.45 * Math.sin(time * 0.0022 + i * 0.7 + j);
+              line3D(attentionPoints[i], attentionPoints[j], colors.series2, alpha * (0.08 + strength * 0.22 * pulse), 0.7 + strength * 1.3, dims);
+            }
+          }
+        }
+        attentionPoints.forEach((point, i) => {
+          circle3D(point, 4.1 + point.weight * 3.1, colors.series2, alpha * (0.45 + point.weight * 0.35), dims);
+          if (i < tokenPositions.length) line3D(tokenPositions[i], point, colors.series2, alpha * 0.16, 1, dims);
+        });
+        const p = circle3D(focus, 10, colors.series2, alpha * 0.3, dims, colors.series2);
+        projectedHitAreas.push({ x: p.x - 25, y: p.y - 25, width: 50, height: 50, type: 'attention', label: 'Attention changes which earlier tokens matter for the current prediction.' });
+        const header = project({ x: -1.45, y: 2.35, z: 0 }, dims.width, dims.height);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        label('ATTENTION', header.x, header.y, colors.mutedForeground);
+        ctx.restore();
+        return attentionPoints;
+      }
+
+      function drawLayers(attentionPoints, dims, colors, time) {
+        const alpha = stageAlpha(3);
+        const ringXs = [-0.3, 0.48, 1.26];
+        const ringNodes = [];
+        ringXs.forEach((x, layerIndex) => {
+          const ring = [];
+          const count = 18;
+          for (let i = 0; i < count; i += 1) {
+            const angle = (i / count) * Math.PI * 2;
+            const wobble = Math.sin(time * 0.001 + i * 1.9 + layerIndex) * 0.08;
+            const point = { x, y: Math.sin(angle) * (1.48 + wobble), z: Math.cos(angle) * (1.48 + wobble) };
+            ring.push(point);
+            const intensity = 0.26 + 0.45 * (0.5 + 0.5 * Math.sin(time * 0.002 + i * 0.58 - layerIndex));
+            circle3D(point, 3.2, colors.series3, alpha * intensity, dims);
+            if (i > 0) line3D(ring[i - 1], point, colors.series3, alpha * 0.12, 1, dims);
+          }
+          line3D(ring[ring.length - 1], ring[0], colors.series3, alpha * 0.12, 1, dims);
+          ringNodes.push(ring);
+        });
+
+        attentionPoints.forEach((point, i) => {
+          line3D(point, ringNodes[0][(i * 2) % ringNodes[0].length], colors.series3, alpha * 0.12, 1, dims);
+        });
+        for (let layer = 0; layer < ringNodes.length - 1; layer += 1) {
+          for (let i = 0; i < ringNodes[layer].length; i += 3) {
+            line3D(ringNodes[layer][i], ringNodes[layer + 1][(i + 2) % ringNodes[layer + 1].length], colors.series3, alpha * 0.15, 1, dims);
+          }
+        }
+        const p = project({ x: 0.48, y: 0, z: 0 }, dims.width, dims.height);
+        projectedHitAreas.push({ x: p.x - 42, y: p.y - 42, width: 84, height: 84, type: 'layer', label: 'Each ring stands for many learned transformations inside a transformer block.' });
+        const header = project({ x: 0.48, y: 2.35, z: 0 }, dims.width, dims.height);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        label('TRANSFORMER BLOCKS', header.x, header.y, colors.mutedForeground);
+        ctx.restore();
+        return ringNodes[ringNodes.length - 1];
+      }
+
+      function drawCandidates(lastRing, dims, colors, time) {
+        const alpha = stageAlpha(4);
+        const sorted = [...candidates].sort((a, b) => b.probability - a.probability).slice(0, 6);
+        const max = sorted[0] ? sorted[0].probability : 1;
+        const anchor = { x: 2.25, y: 0, z: 0 };
+        lastRing.filter((_, i) => i % 3 === 0).forEach((point, i) => {
+          line3D(point, anchor, colors.series4, alpha * (0.08 + i * 0.01), 1, dims);
+        });
+        const anchorP = circle3D(anchor, 8, colors.series4, alpha * 0.48, dims, colors.series4);
+        projectedHitAreas.push({ x: anchorP.x - 24, y: anchorP.y - 24, width: 48, height: 48, type: 'logits', label: 'The final vector is converted into scores for tokens in the vocabulary.' });
+
+        sorted.forEach((candidate, i) => {
+          const angle = -1.22 + i * 0.49;
+          const radius = 1.2 + (candidate.probability / max) * 0.62;
+          const point = {
+            x: 3.25,
+            y: Math.sin(angle) * radius,
+            z: Math.cos(angle) * radius
+          };
+          const isSelected = selectedToken === candidate.token;
+          const pulse = isSelected ? 1 + Math.sin(time * 0.012) * 0.18 : 1;
+          line3D(anchor, point, colors.series4, alpha * (0.13 + candidate.probability * 0.7), 1 + candidate.probability * 4, dims);
+          const p = circle3D(point, (5 + candidate.probability * 18) * pulse, isSelected ? colors.primary : colors.series4, alpha * (0.48 + candidate.probability), dims, isSelected ? colors.primaryForeground : undefined);
+          const percent = `${Math.round(candidate.probability * 100)}%`;
+          const placeLeft = p.x > dims.width - 105;
+          const textX = p.x + (placeLeft ? -12 - candidate.probability * 8 : 12 + candidate.probability * 8);
+          const textAlign = placeLeft ? 'right' : 'left';
+          label(candidate.token, textX, p.y - 7, colors.foreground, textAlign);
+          label(percent, textX, p.y + 8, colors.mutedForeground, textAlign, 400);
+          projectedHitAreas.push({ x: placeLeft ? p.x - 92 : p.x - 18, y: p.y - 18, width: 110, height: 38, type: 'candidate', token: candidate.token, label: `“${candidate.token}” has an illustrative probability of ${percent}.` });
+        });
+        const header = project({ x: 3.15, y: 2.35, z: 0 }, dims.width, dims.height);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        label('NEXT-TOKEN DISTRIBUTION', header.x, header.y, colors.mutedForeground);
+        ctx.restore();
+      }
+
+      function drawFlow(dims, colors, time) {
+        if (activeStage !== 0 && !generationPulse) return;
+        const progress = generationPulse ? Math.min(1, (time - animationStart) / (reducedMotion ? 220 : 950)) : ((time * 0.00009) % 1);
+        const startX = -3.1;
+        const endX = 3.18;
+        const point = { x: startX + (endX - startX) * progress, y: 0, z: 0 };
+        const p = project(point, dims.width, dims.height);
+        ctx.save();
+        ctx.globalAlpha = generationPulse ? 0.95 : 0.45;
+        ctx.fillStyle = colors.primary;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, generationPulse ? 7 : 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function draw(now = performance.now()) {
+        const dims = sizeCanvas();
+        const colors = palette();
+        yaw += (targetYaw - yaw) * 0.12;
+        pitch += (targetPitch - pitch) * 0.12;
+        projectedHitAreas = [];
+        drawBackdrop(dims, colors);
+        const tokenPositions = drawTokens(dims, colors, now);
+        const attentionPoints = drawAttention(tokenPositions, dims, colors, now);
+        const lastRing = drawLayers(attentionPoints, dims, colors, now);
+        drawCandidates(lastRing, dims, colors, now);
+        drawFlow(dims, colors, now);
+
+        if (hoverItem) {
+          const found = projectedHitAreas.find(item => item.type === hoverItem.type && (item.index === hoverItem.index || item.token === hoverItem.token || (!item.index && !item.token)));
+          if (found) status.textContent = found.label;
+        }
+
+        if (!reducedMotion || dragging || Math.abs(targetYaw - yaw) > 0.002 || Math.abs(targetPitch - pitch) > 0.002 || generationPulse) {
+          window.requestAnimationFrame(draw);
+        }
+      }
+
+      function pointerPosition(event) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      }
+
+      canvas.addEventListener('pointerdown', event => {
+        dragging = true;
+        dragStart = { ...pointerPosition(event), yaw: targetYaw, pitch: targetPitch };
+        canvas.setPointerCapture(event.pointerId);
+      });
+
+      canvas.addEventListener('pointermove', event => {
+        const pos = pointerPosition(event);
+        if (dragging && dragStart) {
+          targetYaw = Math.max(-0.58, Math.min(0.58, dragStart.yaw + (pos.x - dragStart.x) * 0.004));
+          targetPitch = Math.max(-0.3, Math.min(0.3, dragStart.pitch + (pos.y - dragStart.y) * 0.003));
+          draw();
+          return;
+        }
+        const hit = [...projectedHitAreas].reverse().find(item => pos.x >= item.x && pos.x <= item.x + item.width && pos.y >= item.y && pos.y <= item.y + item.height);
+        hoverItem = hit ? { type: hit.type, index: hit.index, token: hit.token } : null;
+        if (hit) status.textContent = hit.label;
+        else status.textContent = stages[activeStage].title + '. Drag the model to inspect it.';
+      });
+
+      function endDrag(event) {
+        if (dragging && canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        dragging = false;
+        dragStart = null;
+      }
+
+      canvas.addEventListener('pointerup', endDrag);
+      canvas.addEventListener('pointercancel', endDrag);
+      canvas.addEventListener('pointerleave', event => {
+        if (dragging) endDrag(event);
+        hoverItem = null;
+      });
+
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          stopTour();
+          setStage(Number(button.dataset.step));
+        });
+      });
+
+      contextSelect.addEventListener('change', () => {
+        const context = contexts[contextSelect.value];
+        promptInput.value = context.prompt;
+        contextRound = 0;
+        selectedToken = '';
+        candidates = currentCandidates();
+        status.textContent = 'Context changed. Notice how the next-token distribution changes.';
+        draw();
+      });
+
+      promptInput.addEventListener('input', () => {
+        contextRound = 0;
+        selectedToken = '';
+        candidates = currentCandidates();
+        status.textContent = 'Text changed. Probabilities are illustrative, not produced by a live language model.';
+        draw();
+      });
+
+      generateButton.addEventListener('click', generateToken);
+      tourButton.addEventListener('click', startTour);
+
+      const resizeObserver = new ResizeObserver(() => draw());
+      resizeObserver.observe(wrap);
+      const themeObserver = new MutationObserver(() => draw());
+      themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
+      window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', event => {
+        reducedMotion = event.matches;
+        draw();
+      });
+
+      candidates = currentCandidates();
+      setStage(0, { quiet: true });
+      if (window.lucide) window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
+      draw();
+    })();
+  </script>
+</div>
