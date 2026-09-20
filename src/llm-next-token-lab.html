@@ -628,11 +628,37 @@
         return { x: p.x - width / 2, y: p.y - height / 2, width, height };
       }
 
-      function stageHeading(title, explanation, point, alpha, dims, colors) {
+      function stageHeading(title, explanationLines, stageNumber, point, alpha, dims, colors) {
         const p = project(point, dims.width, dims.height);
         label(title, p.x, p.y, colors.foreground, 'center', 650, alpha);
-        if (dims.width >= 820 || activeStage !== 0) {
-          label(explanation, p.x, p.y + 19, colors.mutedForeground, 'center', 400, alpha);
+        projectedHitAreas.push({
+          x: p.x - 112,
+          y: p.y - 18,
+          width: 224,
+          height: 36,
+          type: 'stage',
+          stage: stageNumber,
+          label: `Select ${title.toLowerCase()} for a simple explanation.`
+        });
+
+        if (activeStage === stageNumber) {
+          const boxWidth = Math.min(340, dims.width - 32);
+          const boxHeight = 58;
+          const boxX = p.x - boxWidth / 2;
+          const boxY = p.y + 15;
+          ctx.save();
+          ctx.globalAlpha = 0.94;
+          ctx.fillStyle = colors.surface;
+          ctx.strokeStyle = colors.border;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 12);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+          explanationLines.forEach((line, index) => {
+            label(line, p.x, boxY + 20 + index * 19, colors.foreground, 'center', 450, 1);
+          });
         }
       }
 
@@ -688,7 +714,7 @@
           const wave = 0.5 + 0.5 * Math.sin(time * 0.0018 + i);
           line3D(point, end, colors.series1, alpha * (0.15 + wave * 0.18), 1, dims);
         });
-        stageHeading('TOKENS', 'Text pieces become number vectors', { x: -3.25, y: 2.35, z: 0 }, alpha, dims, colors);
+        stageHeading('TOKENS', ['A token is a small piece of text.', 'It becomes numbers the model can process.'], 1, { x: -3.25, y: 2.35, z: 0 }, alpha, dims, colors);
         return positions;
       }
 
@@ -716,7 +742,7 @@
         });
         const p = circle3D(focus, 10, colors.series2, alpha * 0.3, dims, colors.series2);
         projectedHitAreas.push({ x: p.x - 25, y: p.y - 25, width: 50, height: 50, type: 'attention', label: 'Attention changes which earlier tokens matter for the current prediction.' });
-        stageHeading('ATTENTION', 'Which tokens matter to each other?', { x: -1.45, y: 2.35, z: 0 }, alpha, dims, colors);
+        stageHeading('ATTENTION', ['Attention measures which other tokens', 'are relevant to the current token.'], 2, { x: -1.45, y: 2.35, z: 0 }, alpha, dims, colors);
         return attentionPoints;
       }
 
@@ -750,7 +776,7 @@
         }
         const p = project({ x: 0.48, y: 0, z: 0 }, dims.width, dims.height);
         projectedHitAreas.push({ x: p.x - 42, y: p.y - 42, width: 84, height: 84, type: 'layer', label: 'Each ring stands for many learned transformations inside a transformer block.' });
-        stageHeading('TRANSFORMER BLOCKS', 'Repeatedly update every vector', { x: 0.48, y: 2.35, z: 0 }, alpha, dims, colors);
+        stageHeading('TRANSFORMER BLOCKS', ['Each block updates every token vector,', 'then passes them to the next block.'], 3, { x: 0.48, y: 2.35, z: 0 }, alpha, dims, colors);
         return ringNodes[ringNodes.length - 1];
       }
 
@@ -785,7 +811,7 @@
           label(percent, textX, p.y + 8, colors.mutedForeground, textAlign, 400, alpha);
           projectedHitAreas.push({ x: placeLeft ? p.x - 92 : p.x - 18, y: p.y - 18, width: 110, height: 38, type: 'candidate', token: candidate.token, label: `“${candidate.token}” has an illustrative probability of ${percent}.` });
         });
-        stageHeading('NEXT-TOKEN DISTRIBUTION', 'Probability of each possible next token', { x: 3.15, y: 2.35, z: 0 }, alpha, dims, colors);
+        stageHeading('NEXT-TOKEN DISTRIBUTION', ['Scores become next-token probabilities.', 'This demo chooses the highest one.'], 4, { x: 3.15, y: 2.35, z: 0 }, alpha, dims, colors);
       }
 
       function drawFlow(dims, colors, time) {
@@ -887,6 +913,11 @@
         if (hit.type === 'candidate') {
           const candidate = candidates.find(item => item.token === hit.token);
           if (candidate) generateToken(candidate);
+          return;
+        }
+        if (hit.type === 'stage') {
+          stopTour();
+          setStage(hit.stage);
           return;
         }
         const stageByType = { token: 1, attention: 2, layer: 3, logits: 4 };
