@@ -44,33 +44,6 @@
       flex-wrap: wrap;
     }
 
-    #llm-next-token-lab .llm-stage-copy {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 1.5rem;
-      margin: 0.4rem 0 0.2rem;
-    }
-
-    #llm-next-token-lab .llm-stage-note {
-      min-width: 0;
-      display: grid;
-      grid-template-columns: max-content minmax(0, 1fr);
-      align-items: baseline;
-      gap: 0.55rem;
-      padding: 0.15rem 0;
-    }
-
-    #llm-next-token-lab .llm-stage-copy p {
-      margin: 0;
-    }
-
-    #llm-next-token-lab .llm-stage-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      white-space: nowrap;
-    }
-
     #llm-next-token-lab .llm-canvas-wrap {
       position: relative;
       width: 100%;
@@ -156,16 +129,6 @@
         align-items: stretch;
       }
 
-      #llm-next-token-lab .llm-stage-copy {
-        grid-template-columns: 1fr;
-        gap: 0.2rem;
-      }
-
-      #llm-next-token-lab .llm-stage-note {
-        grid-template-columns: 1fr;
-        gap: 0.05rem;
-      }
-
       #llm-next-token-lab .llm-canvas-wrap {
         min-height: 31rem;
         height: 31rem;
@@ -192,11 +155,11 @@
   </div>
 
   <div class="nav nav-pills nav-justified llm-stage-nav" role="tablist" aria-label="LLM processing stage">
-    <button class="nav-link active" id="llm-tab-0" role="tab" aria-controls="llm-stage-panel" aria-selected="true" type="button" data-step="0">Whole process</button>
-    <button class="nav-link" id="llm-tab-1" role="tab" aria-controls="llm-stage-panel" aria-selected="false" type="button" data-step="1">1 · Tokens</button>
-    <button class="nav-link" id="llm-tab-2" role="tab" aria-controls="llm-stage-panel" aria-selected="false" type="button" data-step="2">2 · Attention</button>
-    <button class="nav-link" id="llm-tab-3" role="tab" aria-controls="llm-stage-panel" aria-selected="false" type="button" data-step="3">3 · Layers</button>
-    <button class="nav-link" id="llm-tab-4" role="tab" aria-controls="llm-stage-panel" aria-selected="false" type="button" data-step="4">4 · Prediction</button>
+    <button class="nav-link active" id="llm-tab-0" role="tab" aria-selected="true" type="button" data-step="0">Whole process</button>
+    <button class="nav-link" id="llm-tab-1" role="tab" aria-selected="false" type="button" data-step="1">1 · Tokens</button>
+    <button class="nav-link" id="llm-tab-2" role="tab" aria-selected="false" type="button" data-step="2">2 · Attention</button>
+    <button class="nav-link" id="llm-tab-3" role="tab" aria-selected="false" type="button" data-step="3">3 · Layers</button>
+    <button class="nav-link" id="llm-tab-4" role="tab" aria-selected="false" type="button" data-step="4">4 · Prediction</button>
   </div>
 
   <div class="llm-prompt-row">
@@ -211,27 +174,13 @@
 
     <label class="llm-field">
       <span class="form-label">Text generated so far</span>
-      <input class="form-control" id="llm-prompt" type="text" value="The old lighthouse keeper opened the door and saw" aria-describedby="llm-stage-panel" readonly>
+      <input class="form-control" id="llm-prompt" type="text" value="The old lighthouse keeper opened the door and saw" readonly>
     </label>
 
     <div class="llm-actions">
       <button class="btn" id="llm-tour" type="button"><i data-lucide="play" aria-hidden="true"></i> Guide me</button>
       <button class="btn" id="llm-reset" type="button" title="Show the whole process"><i data-lucide="scan" aria-hidden="true"></i> Reset view</button>
       <button class="btn btn-primary" id="llm-generate" type="button"><i data-lucide="sparkles" aria-hidden="true"></i> Generate next token</button>
-    </div>
-  </div>
-
-  <div class="llm-stage-copy" id="llm-stage-panel" role="tabpanel" aria-labelledby="llm-tab-0">
-    <div class="llm-stage-note">
-      <div class="llm-stage-label">
-        <strong id="llm-stage-title">The complete loop</strong>
-        <span class="text-small text-muted" id="llm-stage-count">Overview</span>
-      </div>
-      <p id="llm-stage-detail">The model repeatedly converts text into numbers, mixes context, and predicts one next token.</p>
-    </div>
-    <div class="llm-stage-note">
-      <strong>Human contrast</strong>
-      <p id="llm-human-detail">You may imagine a scene and its meaning. The model transforms learned numerical patterns.</p>
     </div>
   </div>
 
@@ -266,11 +215,6 @@
       const tourButton = document.getElementById('llm-tour');
       const resetButton = document.getElementById('llm-reset');
       const status = document.getElementById('llm-status');
-      const stageTitle = document.getElementById('llm-stage-title');
-      const stageCount = document.getElementById('llm-stage-count');
-      const stageDetail = document.getElementById('llm-stage-detail');
-      const humanDetail = document.getElementById('llm-human-detail');
-      const stagePanel = document.getElementById('llm-stage-panel');
       const tabButtons = [...root.querySelectorAll('[data-step]')];
       const colorProbe = document.createElement('span');
       colorProbe.setAttribute('aria-hidden', 'true');
@@ -439,16 +383,11 @@
       function setStage(index, options = {}) {
         activeStage = Math.max(0, Math.min(stages.length - 1, index));
         const data = stages[activeStage];
-        stageTitle.textContent = data.title;
-        stageCount.textContent = data.count;
-        stageDetail.textContent = data.detail;
-        humanDetail.textContent = data.human;
         tabButtons.forEach((button, buttonIndex) => {
           const selected = buttonIndex === activeStage;
           button.classList.toggle('active', selected);
           button.setAttribute('aria-selected', selected ? 'true' : 'false');
         });
-        stagePanel.setAttribute('aria-labelledby', `llm-tab-${activeStage}`);
         targetViewCenterX = stageViews[activeStage].x;
         targetViewZoom = stageViews[activeStage].zoom;
         if (!options.quiet) status.textContent = `${data.title}. Drag the model to inspect it.`;
