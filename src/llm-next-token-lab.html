@@ -590,7 +590,7 @@
           const boxY = headingY + 15;
           ctx.save();
           ctx.globalAlpha = 0.94;
-          ctx.fillStyle = colors.surface;
+          ctx.fillStyle = colors.foreground;
           ctx.strokeStyle = colors.border;
           ctx.lineWidth = 1;
           ctx.beginPath();
@@ -599,7 +599,7 @@
           ctx.stroke();
           ctx.restore();
           explanationLines.forEach((line, index) => {
-            label(line, boxX + boxWidth / 2, boxY + 20 + index * 19, colors.foreground, 'center', 450, 1);
+            label(line, boxX + boxWidth / 2, boxY + 20 + index * 19, colors.primaryForeground, 'center', 450, 1);
           });
         }
       }

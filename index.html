@@ -2131,7 +2131,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           const boxY = headingY + 15;
           ctx.save();
           ctx.globalAlpha = 0.94;
-          ctx.fillStyle = colors.surface;
+          ctx.fillStyle = colors.foreground;
           ctx.strokeStyle = colors.border;
           ctx.lineWidth = 1;
           ctx.beginPath();
@@ -2140,7 +2140,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           ctx.stroke();
           ctx.restore();
           explanationLines.forEach((line, index) =&gt; {
-            label(line, boxX + boxWidth / 2, boxY + 20 + index * 19, colors.foreground, &#x27;center&#x27;, 450, 1);
+            label(line, boxX + boxWidth / 2, boxY + 20 + index * 19, colors.primaryForeground, &#x27;center&#x27;, 450, 1);
           });
         }
       }
