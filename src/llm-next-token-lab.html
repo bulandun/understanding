@@ -319,25 +319,25 @@
         {
           title: 'Text becomes tokens',
           count: 'Step 1 of 4',
-          detail: 'The text is split into pieces and each piece becomes a high-dimensional numerical vector.',
+          detail: 'The sentence is split into small pieces called tokens. Each token becomes a list of numbers—a vector—that the model can process.',
           human: 'You can connect “lighthouse” to sights, sounds and experience. The model receives token IDs and vectors.'
         },
         {
           title: 'Attention mixes context',
           count: 'Step 2 of 4',
-          detail: 'Each token weights other tokens differently, creating context-sensitive representations.',
+          detail: 'Each token measures which other tokens are relevant to it. Stronger connections carry more influence into the next calculation.',
           human: 'Human attention is tied to goals and perception. Model attention is a learned mathematical weighting operation.'
         },
         {
           title: 'Layers transform the pattern',
           count: 'Step 3 of 4',
-          detail: 'Repeated blocks reshape the vectors, building increasingly useful relationships for prediction.',
+          detail: 'Each transformer block combines attention with a neural-network calculation, updates every vector, and passes the result to the next block.',
           human: 'There is no little voice inside the layers. These are repeated calculations, not conscious reflection.'
         },
         {
           title: 'A distribution becomes one token',
           count: 'Step 4 of 4',
-          detail: 'The final state assigns probabilities to possible next tokens. This demo selects the most likely one and feeds it back into the context.',
+          detail: 'The final vector gives every vocabulary token a score. Those scores become probabilities; this demo selects the highest and adds it to the text.',
           human: 'A fluent continuation can feel intentional, but it is produced token by token—not retrieved as a finished thought.'
         }
       ];
@@ -628,6 +628,14 @@
         return { x: p.x - width / 2, y: p.y - height / 2, width, height };
       }
 
+      function stageHeading(title, explanation, point, alpha, dims, colors) {
+        const p = project(point, dims.width, dims.height);
+        label(title, p.x, p.y, colors.foreground, 'center', 650, alpha);
+        if (dims.width >= 820 || activeStage !== 0) {
+          label(explanation, p.x, p.y + 19, colors.mutedForeground, 'center', 400, alpha);
+        }
+      }
+
       function stageAlpha(stageNumber) {
         if (activeStage === 0) return 1;
         return activeStage === stageNumber ? 1 : 0.16;
@@ -680,11 +688,7 @@
           const wave = 0.5 + 0.5 * Math.sin(time * 0.0018 + i);
           line3D(point, end, colors.series1, alpha * (0.15 + wave * 0.18), 1, dims);
         });
-        const header = project({ x: -3.25, y: 2.35, z: 0 }, dims.width, dims.height);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        label('TOKENS', header.x, header.y, colors.mutedForeground);
-        ctx.restore();
+        stageHeading('TOKENS', 'Text pieces become number vectors', { x: -3.25, y: 2.35, z: 0 }, alpha, dims, colors);
         return positions;
       }
 
@@ -712,11 +716,7 @@
         });
         const p = circle3D(focus, 10, colors.series2, alpha * 0.3, dims, colors.series2);
         projectedHitAreas.push({ x: p.x - 25, y: p.y - 25, width: 50, height: 50, type: 'attention', label: 'Attention changes which earlier tokens matter for the current prediction.' });
-        const header = project({ x: -1.45, y: 2.35, z: 0 }, dims.width, dims.height);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        label('ATTENTION', header.x, header.y, colors.mutedForeground);
-        ctx.restore();
+        stageHeading('ATTENTION', 'Which tokens matter to each other?', { x: -1.45, y: 2.35, z: 0 }, alpha, dims, colors);
         return attentionPoints;
       }
 
@@ -750,11 +750,7 @@
         }
         const p = project({ x: 0.48, y: 0, z: 0 }, dims.width, dims.height);
         projectedHitAreas.push({ x: p.x - 42, y: p.y - 42, width: 84, height: 84, type: 'layer', label: 'Each ring stands for many learned transformations inside a transformer block.' });
-        const header = project({ x: 0.48, y: 2.35, z: 0 }, dims.width, dims.height);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        label('TRANSFORMER BLOCKS', header.x, header.y, colors.mutedForeground);
-        ctx.restore();
+        stageHeading('TRANSFORMER BLOCKS', 'Repeatedly update every vector', { x: 0.48, y: 2.35, z: 0 }, alpha, dims, colors);
         return ringNodes[ringNodes.length - 1];
       }
 
@@ -789,11 +785,7 @@
           label(percent, textX, p.y + 8, colors.mutedForeground, textAlign, 400, alpha);
           projectedHitAreas.push({ x: placeLeft ? p.x - 92 : p.x - 18, y: p.y - 18, width: 110, height: 38, type: 'candidate', token: candidate.token, label: `“${candidate.token}” has an illustrative probability of ${percent}.` });
         });
-        const header = project({ x: 3.15, y: 2.35, z: 0 }, dims.width, dims.height);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        label('NEXT-TOKEN DISTRIBUTION', header.x, header.y, colors.mutedForeground);
-        ctx.restore();
+        stageHeading('NEXT-TOKEN DISTRIBUTION', 'Probability of each possible next token', { x: 3.15, y: 2.35, z: 0 }, alpha, dims, colors);
       }
 
       function drawFlow(dims, colors, time) {

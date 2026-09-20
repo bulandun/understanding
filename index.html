@@ -1860,25 +1860,25 @@ html&gt;body{padding:0}&lt;/style&gt;
         {
           title: &#x27;Text becomes tokens&#x27;,
           count: &#x27;Step 1 of 4&#x27;,
-          detail: &#x27;The text is split into pieces and each piece becomes a high-dimensional numerical vector.&#x27;,
+          detail: &#x27;The sentence is split into small pieces called tokens. Each token becomes a list of numbers—a vector—that the model can process.&#x27;,
           human: &#x27;You can connect “lighthouse” to sights, sounds and experience. The model receives token IDs and vectors.&#x27;
         },
         {
           title: &#x27;Attention mixes context&#x27;,
           count: &#x27;Step 2 of 4&#x27;,
-          detail: &#x27;Each token weights other tokens differently, creating context-sensitive representations.&#x27;,
+          detail: &#x27;Each token measures which other tokens are relevant to it. Stronger connections carry more influence into the next calculation.&#x27;,
           human: &#x27;Human attention is tied to goals and perception. Model attention is a learned mathematical weighting operation.&#x27;
         },
         {
           title: &#x27;Layers transform the pattern&#x27;,
           count: &#x27;Step 3 of 4&#x27;,
-          detail: &#x27;Repeated blocks reshape the vectors, building increasingly useful relationships for prediction.&#x27;,
+          detail: &#x27;Each transformer block combines attention with a neural-network calculation, updates every vector, and passes the result to the next block.&#x27;,
           human: &#x27;There is no little voice inside the layers. These are repeated calculations, not conscious reflection.&#x27;
         },
         {
           title: &#x27;A distribution becomes one token&#x27;,
           count: &#x27;Step 4 of 4&#x27;,
-          detail: &#x27;The final state assigns probabilities to possible next tokens. This demo selects the most likely one and feeds it back into the context.&#x27;,
+          detail: &#x27;The final vector gives every vocabulary token a score. Those scores become probabilities; this demo selects the highest and adds it to the text.&#x27;,
           human: &#x27;A fluent continuation can feel intentional, but it is produced token by token—not retrieved as a finished thought.&#x27;
         }
       ];
@@ -2169,6 +2169,14 @@ html&gt;body{padding:0}&lt;/style&gt;
         return { x: p.x - width / 2, y: p.y - height / 2, width, height };
       }
 
+      function stageHeading(title, explanation, point, alpha, dims, colors) {
+        const p = project(point, dims.width, dims.height);
+        label(title, p.x, p.y, colors.foreground, &#x27;center&#x27;, 650, alpha);
+        if (dims.width &gt;= 820 || activeStage !== 0) {
+          label(explanation, p.x, p.y + 19, colors.mutedForeground, &#x27;center&#x27;, 400, alpha);
+        }
+      }
+
       function stageAlpha(stageNumber) {
         if (activeStage === 0) return 1;
         return activeStage === stageNumber ? 1 : 0.16;
@@ -2221,11 +2229,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           const wave = 0.5 + 0.5 * Math.sin(time * 0.0018 + i);
           line3D(point, end, colors.series1, alpha * (0.15 + wave * 0.18), 1, dims);
         });
-        const header = project({ x: -3.25, y: 2.35, z: 0 }, dims.width, dims.height);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        label(&#x27;TOKENS&#x27;, header.x, header.y, colors.mutedForeground);
-        ctx.restore();
+        stageHeading(&#x27;TOKENS&#x27;, &#x27;Text pieces become number vectors&#x27;, { x: -3.25, y: 2.35, z: 0 }, alpha, dims, colors);
         return positions;
       }
 
@@ -2253,11 +2257,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         });
         const p = circle3D(focus, 10, colors.series2, alpha * 0.3, dims, colors.series2);
         projectedHitAreas.push({ x: p.x - 25, y: p.y - 25, width: 50, height: 50, type: &#x27;attention&#x27;, label: &#x27;Attention changes which earlier tokens matter for the current prediction.&#x27; });
-        const header = project({ x: -1.45, y: 2.35, z: 0 }, dims.width, dims.height);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        label(&#x27;ATTENTION&#x27;, header.x, header.y, colors.mutedForeground);
-        ctx.restore();
+        stageHeading(&#x27;ATTENTION&#x27;, &#x27;Which tokens matter to each other?&#x27;, { x: -1.45, y: 2.35, z: 0 }, alpha, dims, colors);
         return attentionPoints;
       }
 
@@ -2291,11 +2291,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         }
         const p = project({ x: 0.48, y: 0, z: 0 }, dims.width, dims.height);
         projectedHitAreas.push({ x: p.x - 42, y: p.y - 42, width: 84, height: 84, type: &#x27;layer&#x27;, label: &#x27;Each ring stands for many learned transformations inside a transformer block.&#x27; });
-        const header = project({ x: 0.48, y: 2.35, z: 0 }, dims.width, dims.height);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        label(&#x27;TRANSFORMER BLOCKS&#x27;, header.x, header.y, colors.mutedForeground);
-        ctx.restore();
+        stageHeading(&#x27;TRANSFORMER BLOCKS&#x27;, &#x27;Repeatedly update every vector&#x27;, { x: 0.48, y: 2.35, z: 0 }, alpha, dims, colors);
         return ringNodes[ringNodes.length - 1];
       }
 
@@ -2330,11 +2326,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           label(percent, textX, p.y + 8, colors.mutedForeground, textAlign, 400, alpha);
           projectedHitAreas.push({ x: placeLeft ? p.x - 92 : p.x - 18, y: p.y - 18, width: 110, height: 38, type: &#x27;candidate&#x27;, token: candidate.token, label: `“${candidate.token}” has an illustrative probability of ${percent}.` });
         });
-        const header = project({ x: 3.15, y: 2.35, z: 0 }, dims.width, dims.height);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        label(&#x27;NEXT-TOKEN DISTRIBUTION&#x27;, header.x, header.y, colors.mutedForeground);
-        ctx.restore();
+        stageHeading(&#x27;NEXT-TOKEN DISTRIBUTION&#x27;, &#x27;Probability of each possible next token&#x27;, { x: 3.15, y: 2.35, z: 0 }, alpha, dims, colors);
       }
 
       function drawFlow(dims, colors, time) {
