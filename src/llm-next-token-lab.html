@@ -210,8 +210,8 @@
     </label>
 
     <label class="llm-field">
-      <span class="form-label">Text so far</span>
-      <input class="form-control" id="llm-prompt" type="text" value="The old lighthouse keeper opened the door and saw" aria-describedby="llm-stage-panel">
+      <span class="form-label">Text generated so far</span>
+      <input class="form-control" id="llm-prompt" type="text" value="The old lighthouse keeper opened the door and saw" aria-describedby="llm-stage-panel" readonly>
     </label>
 
     <div class="llm-actions">
@@ -337,7 +337,7 @@
         {
           title: 'A distribution becomes one token',
           count: 'Step 4 of 4',
-          detail: 'The final state assigns probabilities to possible next tokens; one is selected and fed back into the context.',
+          detail: 'The final state assigns probabilities to possible next tokens. This demo selects the most likely one and feeds it back into the context.',
           human: 'A fluent continuation can feel intentional, but it is produced token by token—not retrieved as a finished thought.'
         }
       ];
@@ -510,7 +510,7 @@
         generationPulse = 1;
         animationStart = performance.now();
         generateButton.disabled = true;
-        status.textContent = 'Sampling from the probability distribution…';
+        status.textContent = 'Selecting the highest-probability token…';
         draw();
         window.setTimeout(() => {
           const punctuation = /^[.,!?;:]$/.test(selected.token);
@@ -926,14 +926,6 @@
         selectedToken = '';
         candidates = currentCandidates();
         status.textContent = 'Context changed. Notice how the next-token distribution changes.';
-        draw();
-      });
-
-      promptInput.addEventListener('input', () => {
-        contextRound = 0;
-        selectedToken = '';
-        candidates = currentCandidates();
-        status.textContent = 'Text changed. Probabilities are illustrative, not produced by a live language model.';
         draw();
       });
 

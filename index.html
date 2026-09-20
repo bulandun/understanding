@@ -1751,8 +1751,8 @@ html&gt;body{padding:0}&lt;/style&gt;
     &lt;/label&gt;
 
     &lt;label class=&quot;llm-field&quot;&gt;
-      &lt;span class=&quot;form-label&quot;&gt;Text so far&lt;/span&gt;
-      &lt;input class=&quot;form-control&quot; id=&quot;llm-prompt&quot; type=&quot;text&quot; value=&quot;The old lighthouse keeper opened the door and saw&quot; aria-describedby=&quot;llm-stage-panel&quot;&gt;
+      &lt;span class=&quot;form-label&quot;&gt;Text generated so far&lt;/span&gt;
+      &lt;input class=&quot;form-control&quot; id=&quot;llm-prompt&quot; type=&quot;text&quot; value=&quot;The old lighthouse keeper opened the door and saw&quot; aria-describedby=&quot;llm-stage-panel&quot; readonly&gt;
     &lt;/label&gt;
 
     &lt;div class=&quot;llm-actions&quot;&gt;
@@ -1878,7 +1878,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         {
           title: &#x27;A distribution becomes one token&#x27;,
           count: &#x27;Step 4 of 4&#x27;,
-          detail: &#x27;The final state assigns probabilities to possible next tokens; one is selected and fed back into the context.&#x27;,
+          detail: &#x27;The final state assigns probabilities to possible next tokens. This demo selects the most likely one and feeds it back into the context.&#x27;,
           human: &#x27;A fluent continuation can feel intentional, but it is produced token by token—not retrieved as a finished thought.&#x27;
         }
       ];
@@ -2051,7 +2051,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         generationPulse = 1;
         animationStart = performance.now();
         generateButton.disabled = true;
-        status.textContent = &#x27;Sampling from the probability distribution…&#x27;;
+        status.textContent = &#x27;Selecting the highest-probability token…&#x27;;
         draw();
         window.setTimeout(() =&gt; {
           const punctuation = /^[.,!?;:]$/.test(selected.token);
@@ -2467,14 +2467,6 @@ html&gt;body{padding:0}&lt;/style&gt;
         selectedToken = &#x27;&#x27;;
         candidates = currentCandidates();
         status.textContent = &#x27;Context changed. Notice how the next-token distribution changes.&#x27;;
-        draw();
-      });
-
-      promptInput.addEventListener(&#x27;input&#x27;, () =&gt; {
-        contextRound = 0;
-        selectedToken = &#x27;&#x27;;
-        candidates = currentCandidates();
-        status.textContent = &#x27;Text changed. Probabilities are illustrative, not produced by a live language model.&#x27;;
         draw();
       });
 
