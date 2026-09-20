@@ -2110,10 +2110,13 @@ html&gt;body{padding:0}&lt;/style&gt;
 
       function stageHeading(title, explanationLines, stageNumber, point, alpha, dims, colors) {
         const p = project(point, dims.width, dims.height);
-        label(title, p.x, p.y, colors.foreground, &#x27;center&#x27;, 650, alpha);
+        const horizontalMargin = Math.min(150, dims.width * 0.42);
+        const headingX = Math.max(horizontalMargin, Math.min(dims.width - horizontalMargin, p.x));
+        const headingY = Math.max(34, Math.min(dims.height - 84, p.y));
+        label(title, headingX, headingY, colors.foreground, &#x27;center&#x27;, 650, alpha);
         projectedHitAreas.push({
-          x: p.x - 112,
-          y: p.y - 18,
+          x: headingX - 112,
+          y: headingY - 18,
           width: 224,
           height: 36,
           type: &#x27;stage&#x27;,
@@ -2124,8 +2127,8 @@ html&gt;body{padding:0}&lt;/style&gt;
         if (activeStage === stageNumber) {
           const boxWidth = Math.min(340, dims.width - 32);
           const boxHeight = 58;
-          const boxX = p.x - boxWidth / 2;
-          const boxY = p.y + 15;
+          const boxX = Math.max(16, Math.min(dims.width - boxWidth - 16, headingX - boxWidth / 2));
+          const boxY = headingY + 15;
           ctx.save();
           ctx.globalAlpha = 0.94;
           ctx.fillStyle = colors.surface;
@@ -2137,7 +2140,7 @@ html&gt;body{padding:0}&lt;/style&gt;
           ctx.stroke();
           ctx.restore();
           explanationLines.forEach((line, index) =&gt; {
-            label(line, p.x, boxY + 20 + index * 19, colors.foreground, &#x27;center&#x27;, 450, 1);
+            label(line, boxX + boxWidth / 2, boxY + 20 + index * 19, colors.foreground, &#x27;center&#x27;, 450, 1);
           });
         }
       }
